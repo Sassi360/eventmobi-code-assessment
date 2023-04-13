@@ -37,10 +37,10 @@ Your task is to use Gist API to create a simple single-page application. A user 
 
 Several improvements with the potential to enhance the overall experience:
 
-    - Implementing pagination or infinite scrolling for the list of Gists to improve performance for users with many Gists. [N/A]
-    - Adding caching or debounce functionality for the search bar to reduce unnecessary API calls. [Already Implemented]
-    - Adding sorting or filtering options for the list of Gists.
-    - Improving the UI/UX design of the app.
+    - Adding caching or debounce functionality for the search bar to reduce unnecessary API calls. [Done]
+    - Implementing pagination or infinite scrolling for the list of Gists to improve performance for users with many Gists. [ ]
+    - Adding sorting or filtering options for the list of Gists.[ ]
+    - Improving the UI/UX design of the app. [ ]
 
 
 
