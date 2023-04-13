@@ -12,6 +12,7 @@ import {
   FormControl,
   FormLabel,
   Heading,
+  Icon,
   Input,
   InputGroup,
   InputRightElement,
@@ -21,6 +22,7 @@ import {
   Text,
   useToast,
 } from "@chakra-ui/react";
+import { IconAlertTriangleFilled, IconX } from "@tabler/icons-react";
 import axios from "axios";
 import { ChangeEvent, FC, memo, useCallback, useEffect, useState } from "react";
 import { useAsync, useDebounce } from "react-use";
@@ -196,9 +198,7 @@ export const App: FC = () => {
 
           <InputRightElement>
             {!isClear && (
-              <Text onClick={handleClearClick} cursor="pointer">
-                x
-              </Text>
+              <Icon as={IconX} onClick={handleClearClick} cursor="pointer" />
             )}
           </InputRightElement>
         </InputGroup>
@@ -220,7 +220,11 @@ export const App: FC = () => {
           <Spinner />
         </Center>
       )}
-      {error && <div>Error: {error.message}</div>}
+      {error && (
+        <Center>
+          <Icon as={IconAlertTriangleFilled} fontSize="9xl" />
+        </Center>
+      )}
 
       <SimpleGrid columns={[1, 2, 3]} spacing="5">
         {gists.map((gist) => (
