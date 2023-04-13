@@ -10,7 +10,6 @@ import {
   Input,
   InputGroup,
   InputRightAddon,
-  InputRightElement,
   SimpleGrid,
   Spinner,
   Text,
@@ -20,25 +19,24 @@ import { IconAlertTriangleFilled, IconX } from "@tabler/icons-react";
 import { ChangeEvent, FC, useCallback, useEffect, useState } from "react";
 import { useAsync, useDebounce } from "react-use";
 import { fetchGists } from "./api";
-import { GistCard } from "./components/GistCard";
+import { GistCard, Gist } from "./components/GistCard";
 
-const LoadingSpinner = () => (
+const LoadingSpinner: FC = () => (
   <Center>
     <Spinner />
   </Center>
 );
 
-const ErrorIcon = () => (
+const ErrorIcon: FC = () => (
   <Center>
     <Icon as={IconAlertTriangleFilled} fontSize="9xl" />
   </Center>
 );
 
-
 export const App: FC = () => {
-  const [username, setUsername] = useState("");
-  const [debouncedUsername, setDebouncedUsername] = useState("");
-  const [isClear, setIsClear] = useState(true);
+  const [username, setUsername] = useState<string>("");
+  const [debouncedUsername, setDebouncedUsername] = useState<string>("");
+  const [isClear, setIsClear] = useState<boolean>(true);
 
   useDebounce(
     () => {
@@ -67,7 +65,7 @@ export const App: FC = () => {
   const {
     loading,
     error,
-    value: gists = [],
+    value: gists = [] as Gist[],
   } = useAsync(async () => {
     if (!debouncedUsername) return [];
 
@@ -132,7 +130,7 @@ export const App: FC = () => {
           )}
           <Divider mb="5" />
           <SimpleGrid columns={[1, 2, 3]} spacing="5">
-            {gists.map((gist) => (
+            {gists.map((gist: Gist) => (
               <GistCard key={gist.id} {...gist} />
             ))}
           </SimpleGrid>
