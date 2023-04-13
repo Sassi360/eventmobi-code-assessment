@@ -1,12 +1,13 @@
-import { Button, useColorMode } from "@chakra-ui/react";
+import { Button, Icon, useColorMode } from "@chakra-ui/react";
+import { IconBrightness2, IconMoonFilled } from "@tabler/icons-react";
 import { FC } from "react";
 
-export const ToggleColorMode: FC = () => {
+export const ToggleColorMode: FC = ({}) => {
   const { colorMode, toggleColorMode } = useColorMode();
 
   return (
     <Button onClick={toggleColorMode} pos="absolute" right="4" top="2">
-      Toggle {colorMode === "light" ? "Dark" : "Light"}
+      <Icon as={colorMode === "light" ? IconMoonFilled : IconBrightness2} fontSize="xl" />
     </Button>
   );
 };
