@@ -16,8 +16,7 @@ import {
   Text,
   Tooltip,
   UnorderedList,
-  useColorMode,
-  useToast,
+  useToast
 } from "@chakra-ui/react";
 import axios from "axios";
 import { ChangeEvent, FC, useCallback, useMemo, useState } from "react";
