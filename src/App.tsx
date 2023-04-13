@@ -9,6 +9,7 @@ import {
   Icon,
   Input,
   InputGroup,
+  InputRightAddon,
   InputRightElement,
   SimpleGrid,
   Spinner,
@@ -102,9 +103,8 @@ export const App: FC = () => {
             value={username}
             variant="filled"
           />
-
-          <InputRightElement>
-            {!isClear && (
+          {!isClear && (
+            <InputRightAddon>
               <Flex
                 align="center"
                 gap="1"
@@ -114,8 +114,8 @@ export const App: FC = () => {
                 <Icon as={IconX} />
                 Clear
               </Flex>
-            )}
-          </InputRightElement>
+            </InputRightAddon>
+          )}
         </InputGroup>
       </FormControl>
 
