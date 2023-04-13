@@ -1,14 +1,7 @@
 import {
-  Avatar,
-  Badge,
-  Box,
   Button,
-  Card,
-  CardBody,
-  CardHeader,
   Center,
   Container,
-  Flex,
   FormControl,
   FormLabel,
   Heading,
@@ -16,18 +9,17 @@ import {
   Input,
   InputGroup,
   InputRightElement,
-  Link,
   SimpleGrid,
   Spinner,
-  Text,
-  useToast,
+  useToast
 } from "@chakra-ui/react";
 import { IconAlertTriangleFilled, IconX } from "@tabler/icons-react";
 import axios from "axios";
-import { ChangeEvent, FC, memo, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, FC, useCallback, useEffect, useState } from "react";
 import { useAsync, useDebounce } from "react-use";
 
 import "./App.css";
+import { GistCard } from "./components/GistCard";
 
 interface Gist {
   description?: string;
@@ -58,44 +50,6 @@ const api = axios.create({
     Authorization: `Bearer ${token}`,
   },
 });
-
-const GistCard: FC<Gist> = memo(
-  ({ id, description = "Unnamed Gist", html_url, fileTypes, forkedUsers }) => (
-    <Card mb="6" variant="outline" shadow="md">
-      <CardHeader>
-        <Link href={html_url} isExternal>
-          <Heading size="md">
-            {description ? description : "**Missing Description**"}
-          </Heading>
-        </Link>
-      </CardHeader>
-      <CardBody pt="0">
-        <Flex align="center" gap="2" mt="3" flexWrap="wrap">
-          <Text fontWeight="medium" fontSize="sm">
-            Filetype:
-          </Text>
-          {fileTypes.length > 0 &&
-            fileTypes.map((type) => (
-              <Badge key={`${id}-${type}`}>{type}</Badge>
-            ))}
-        </Flex>
-
-        <Box mt="2">
-          <Text fontWeight="medium">Fork Users:</Text>
-          {forkedUsers.length > 0 ? (
-            forkedUsers.map(({ avatar_url, html_url, login }) => (
-              <Link href={html_url} key={login} isExternal>
-                <Avatar size="sm" name={login} src={avatar_url} />
-              </Link>
-            ))
-          ) : (
-            <Text>None</Text>
-          )}
-        </Box>
-      </CardBody>
-    </Card>
-  )
-);
 
 export const App: FC = () => {
   const [username, setUsername] = useState("");
