@@ -1,43 +1,54 @@
 import {
   Avatar,
-  AvatarGroup,
   Badge,
   Box,
   Button,
   Card,
+  CardBody,
+  CardHeader,
   Center,
   Container,
   Flex,
   FormControl,
   FormLabel,
+  HStack,
   Heading,
   Input,
   Link,
+  SimpleGrid,
   Spinner,
   Text,
   useToast,
 } from "@chakra-ui/react";
 import axios from "axios";
-import { ChangeEvent, FC, useCallback, useMemo, useState } from "react";
+import {
+  ChangeEvent,
+  FC,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import "./App.css";
 
 interface Gist {
-  id: string;
   description?: string;
-  html_url: string;
   files: Record<string, { language: string }>;
   fileTypes: string[];
   forks_url: string;
-  owner: {
-    login?: string;
-    avatar_url?: string;
-    html_url?: string;
-  };
   forkedUsers: {
     avatar_url: string;
     html_url: string;
     login: string;
   }[];
+  html_url: string;
+  id: string;
+  owner: {
+    login?: string;
+    avatar_url?: string;
+    html_url?: string;
+  };
 }
 
 // Generate your github access token to increase your rate limit
@@ -50,6 +61,41 @@ const api = axios.create({
     Authorization: `Bearer ${token}`,
   },
 });
+
+// Memoize functional components and avoid unnecessary re-renders. This is especially useful when dealing with large lists.
+const GistCard: FC<Gist> = memo(
+  ({ id, description, html_url, fileTypes, forkedUsers }) => (
+    <Card mb="6" key={id} variant="outline" shadow='md'>
+      <CardHeader>
+        <Link href={html_url} isExternal>
+          <Heading size="md">{description || "Unnamed Gist"}</Heading>
+        </Link>
+      </CardHeader>
+      <CardBody pt='0'>
+        <Flex align="center" gap="2" mt="3" flexWrap="wrap">
+          <Text fontWeight="medium" fontSize="sm">
+            Filetype:
+          </Text>
+          {fileTypes.length > 0 &&
+            fileTypes.map((type) => (
+              <Badge key={`${id}-${type}`}>{type}</Badge>
+            ))}
+        </Flex>
+
+        <Box mt="2">
+          <Text fontWeight="medium">Fork Users:</Text>
+          {forkedUsers.length > 0
+            ? forkedUsers.map(({ avatar_url, html_url, login }) => (
+                <Link href={html_url} key={login} isExternal>
+                  <Avatar size="sm" name={login} src={avatar_url} />
+                </Link>
+              ))
+            : "None"}
+        </Box>
+      </CardBody>
+    </Card>
+  )
+);
 
 export const App: FC = () => {
   const [username, setUsername] = useState("");
@@ -65,54 +111,64 @@ export const App: FC = () => {
     []
   );
 
-  const fetchGists = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const { data } = await api.get(`/users/${username}/gists`);
+  /*
+   Instead of calling the fetchGists function on button click, we can use the useEffect hook to fetch the data when the
+    component mounts or when the username state changes. This will make the code more efficient and easier to read.
+  */
+  useEffect(() => {
+    const fetchGists = async () => {
+      try {
+        setIsLoading(true);
+        const { data } = await api.get(`/users/${username}/gists`);
 
-      const processedGists = await Promise.all(
-        data.map(
-          async ({ id, description, html_url, files, forks_url }: Gist) => {
-            const { data: forksData } = await api.get(forks_url);
+        const processedGists = await Promise.all(
+          data.map(
+            async ({ description, files, forks_url, html_url, id}: Gist) => {
+              const { data: forksData } = await api.get(forks_url);
 
-            if (!forksData) {
-              throw new Error("Forks data not available");
-            }
+              if (!forksData) {
+                throw new Error("Forks data not available");
+              }
 
-            const forkedUsers = forksData
-              .slice(-3)
-              .map(({ owner: { login, avatar_url, html_url } }: Gist) => ({
-                avatar_url,
+              const forkedUsers = forksData
+                .slice(-3)
+                .map(({ owner: { avatar_url, html_url, login} }: Gist) => ({
+                  avatar_url,
+                  html_url,
+                  login,
+                }));
+
+              const fileTypes = Object.keys(files).map(
+                (filename) => files[filename]?.language || "Unknown"
+              );
+
+              return {
+                description,
+                fileTypes,
+                forkedUsers,
                 html_url,
-                login,
-              }));
+                id,
+              };
+            }
+          )
+        );
 
-            const fileTypes = Object.keys(files).map(
-              (filename) => files[filename]?.language || "Unknown"
-            );
+        setGists(processedGists);
+      } catch (error) {
+        console.error(error);
+        toast({
+          duration: 5000,
+          isClosable: true,
+          status: "error",
+          title: "An error occurred while fetching gists.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-            return {
-              id,
-              description,
-              html_url,
-              fileTypes,
-              forkedUsers,
-            };
-          }
-        )
-      );
-
-      setGists(processedGists);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "An error occurred while fetching gists.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    } finally {
-      setIsLoading(false);
+    if (username) {
+      fetchGists();
     }
   }, [username, toast]);
 
@@ -121,85 +177,41 @@ export const App: FC = () => {
   return (
     <Container maxW="container.xl" mx="auto" my="4">
       <Heading textAlign="center">Gist Explorer</Heading>
-      <FormControl gap="10" mb="6">
+      <FormControl gap="10" mb='4'>
         <FormLabel htmlFor="username">Enter a GitHub username:</FormLabel>
         <Input
-          type="text"
           id="username"
-          variant='filled'
-          value={username}
           onChange={handleInputChange}
+          type="text"
+          value={username}
+          variant="filled"
         />
       </FormControl>
-
       <Button
         colorScheme="twitter"
-        type="submit"
-        onClick={fetchGists}
+        disabled={!username || isLoading}
         isLoading={isLoading}
-        mb="6"
+        mb='10'
+        type="submit"
       >
-        Fetch Gists
+        {isLoading ? "Fetching Gists..." : "Fetch Gists"}
       </Button>
-
       {isLoading && (
         <Center>
           <Spinner />
         </Center>
       )}
-
       {isEmpty && !isLoading && (
         <Text fontSize="xl" fontWeight="bold" my="10" textAlign="center">
           No Gists found
         </Text>
       )}
-
       {!isEmpty && (
-        <>
-          {gists.map(
-            ({ id, description, html_url, fileTypes, forkedUsers }) => (
-              <Card p="4" mb="6" key={id}>
-                <Box gap="2">
-                  <Link
-                    fontSize="lg"
-                    fontWeight="bold"
-                    href={html_url}
-                    isExternal
-                    textTransform="capitalize"
-                  >
-                    {description || "Unnamed Gist"}
-                  </Link>
-
-                <Box mt="2">
-                  <Text fontWeight="medium" fontSize="sm">
-                    Fork Users:
-                  </Text>
-                  {forkedUsers.length > 0 ? (
-                    forkedUsers.map(({ avatar_url, html_url, login }) => (
-                      <Link href={html_url} key={login} isExternal>
-                        <Avatar size="md" name={login} src={avatar_url} />{" "}
-                      </Link>
-                    ))
-                  ) : (
-                    "None"
-                  )}
-                </Box>
-
-                </Box>
-
-                <Flex align="center" gap="2" mt="3">
-                  <Text fontWeight="medium" fontSize="sm">
-                    Filetype:
-                  </Text>
-                  {fileTypes.length > 0 &&
-                    fileTypes.map((type) => (
-                      <Badge key={`${id}-${type}`}>{type}</Badge>
-                    ))}
-                </Flex>
-              </Card>
-            )
-          )}
-        </>
+        <SimpleGrid columns={[1, 2, 3]} spacing="5">
+          {gists.map((gist) => (
+            <GistCard key={gist.id} {...gist} />
+          ))}
+        </SimpleGrid>
       )}
     </Container>
   );
