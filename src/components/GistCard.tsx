@@ -22,7 +22,7 @@ interface ForkedUser {
   login: string;
 }
 
-interface GistProps {
+export interface GistProps {
   description?: string;
   files: Record<string, GistFile>;
   fileTypes: string[];

@@ -19,7 +19,7 @@ import { IconAlertTriangleFilled, IconX } from "@tabler/icons-react";
 import { ChangeEvent, FC, useCallback, useEffect, useState } from "react";
 import { useAsync, useDebounce } from "react-use";
 import { fetchGists } from "./api";
-import { GistCard, Gist } from "./components/GistCard";
+import { GistCard, GistProps } from "./components/GistCard";
 
 const LoadingSpinner: FC = () => (
   <Center>
@@ -65,7 +65,7 @@ export const App: FC = () => {
   const {
     loading,
     error,
-    value: gists = [] as Gist[],
+    value: gists = [] as GistProps[],
   } = useAsync(async () => {
     if (!debouncedUsername) return [];
 
@@ -130,7 +130,7 @@ export const App: FC = () => {
           )}
           <Divider mb="5" />
           <SimpleGrid columns={[1, 2, 3]} spacing="5">
-            {gists.map((gist: Gist) => (
+            {gists.map((gist: GistProps) => (
               <GistCard key={gist.id} {...gist} />
             ))}
           </SimpleGrid>
