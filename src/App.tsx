@@ -19,7 +19,6 @@ import { useAsync, useDebounce } from "react-use";
 import { fetchGists } from "./api";
 import { GistCard } from "./components/GistCard";
 
-import "./App.css";
 
 export const App: FC = () => {
   const [username, setUsername] = useState("");
