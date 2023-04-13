@@ -1,25 +1,33 @@
 import {
-    Avatar,
-    Badge,
-    Box,
-    Card,
-    CardBody,
-    CardHeader,
-    Link,
-    Text,
+  Avatar,
+  Badge,
+  Box,
+  Card,
+  CardBody,
+  CardHeader,
+  Icon,
+  Link,
+  Text,
 } from "@chakra-ui/react";
+import { IconBrandGithubFilled } from "@tabler/icons-react";
 import { FC, memo } from "react";
 
-interface Gist {
+interface GistFile {
+  language: string;
+}
+
+interface ForkedUser {
+  avatar_url: string;
+  html_url: string;
+  login: string;
+}
+
+interface GistProps {
   description?: string;
-  files: Record<string, { language: string }>;
+  files: Record<string, GistFile>;
   fileTypes: string[];
   forks_url: string;
-  forkedUsers: {
-    avatar_url: string;
-    html_url: string;
-    login: string;
-  }[];
+  forkedUsers: ForkedUser[];
   html_url: string;
   id: string;
   owner: {
@@ -29,12 +37,20 @@ interface Gist {
   };
 }
 
-export const GistCard: FC<Gist> = memo(
+export const GistCard: FC<GistProps> = memo(
   ({ id, description = "Unnamed Gist", html_url, fileTypes, forkedUsers }) => (
     <Card mb="6" variant="outline" shadow="md">
       {/* Description */}
-      <CardHeader>
-        <Link href={html_url} isExternal>
+      <CardHeader pb="0">
+        <Link
+          href={html_url}
+          isExternal
+          display="flex"
+          flexDirection="row"
+          gap="2"
+          alignContent="center"
+        >
+          <Icon as={IconBrandGithubFilled} fontSize="xl" />
           <Text
             fontSize="md"
             fontWeight="medium"
@@ -54,7 +70,7 @@ export const GistCard: FC<Gist> = memo(
           </Text>
           {fileTypes.length > 0 &&
             fileTypes.map((type) => (
-              <Badge key={`${id}-${type}`}>{type}</Badge>
+              <Badge key={`${type}-${id}-${Math.random().toString(36)}`}>{type}</Badge>
             ))}
         </Box>
 
@@ -65,7 +81,7 @@ export const GistCard: FC<Gist> = memo(
           </Text>
           {forkedUsers.length > 0 ? (
             forkedUsers.map(({ avatar_url, html_url, login }) => (
-              <Link href={html_url} key={login} isExternal>
+              <Link href={html_url} key={`${login}-${avatar_url}`} isExternal>
                 <Avatar size="sm" name={login} src={avatar_url} />
               </Link>
             ))
