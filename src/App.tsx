@@ -40,10 +40,14 @@ interface Gist {
   }[];
 }
 
+// Generate your github access token to increase your rate limit
+const token = import.meta.env.VITE_ACCESS_TOKEN;
+
 const api = axios.create({
   baseURL: "https://api.github.com",
   headers: {
     Accept: "application/vnd.github.v3+json",
+    Authorization: `Bearer ${token}`,
   },
 });
 
@@ -122,6 +126,7 @@ export const App: FC = () => {
         <Input
           type="text"
           id="username"
+          variant='filled'
           value={username}
           onChange={handleInputChange}
         />
@@ -165,31 +170,31 @@ export const App: FC = () => {
                     {description || "Unnamed Gist"}
                   </Link>
 
-                  <Box mt="2">
-                    <Text fontWeight="medium" fontSize="sm">
-                      Fork Users:
-                    </Text>
-                    <AvatarGroup size="xs" spacing={0.5}>
-                      {forkedUsers.map(({ avatar_url, html_url, login }) => (
-                        <Link href={html_url} key={login} isExternal>
-                          <Avatar size="xs" name={login} src={avatar_url} />{" "}
-                        </Link>
-                      ))}
-                    </AvatarGroup>
-                  </Box>
+                <Box mt="2">
+                  <Text fontWeight="medium" fontSize="sm">
+                    Fork Users:
+                  </Text>
+                  {forkedUsers.length > 0 ? (
+                    forkedUsers.map(({ avatar_url, html_url, login }) => (
+                      <Link href={html_url} key={login} isExternal>
+                        <Avatar size="md" name={login} src={avatar_url} />{" "}
+                      </Link>
+                    ))
+                  ) : (
+                    "None"
+                  )}
+                </Box>
+
                 </Box>
 
                 <Flex align="center" gap="2" mt="3">
                   <Text fontWeight="medium" fontSize="sm">
                     Filetype:
                   </Text>
-                  {fileTypes.length > 0 ? (
+                  {fileTypes.length > 0 &&
                     fileTypes.map((type) => (
                       <Badge key={`${id}-${type}`}>{type}</Badge>
-                    ))
-                  ) : (
-                    <Text>Unknown</Text>
-                  )}
+                    ))}
                 </Flex>
               </Card>
             )
