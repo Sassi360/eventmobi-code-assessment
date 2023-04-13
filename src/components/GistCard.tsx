@@ -32,13 +32,21 @@ interface Gist {
 export const GistCard: FC<Gist> = memo(
   ({ id, description = "Unnamed Gist", html_url, fileTypes, forkedUsers }) => (
     <Card mb="6" variant="outline" shadow="md">
+      {/* Description */}
       <CardHeader>
         <Link href={html_url} isExternal>
-          <Text fontSize="md" fontWeight="medium" noOfLines={2} textTransform='capitalize'>
+          <Text
+            fontSize="md"
+            fontWeight="medium"
+            noOfLines={2}
+            textTransform="capitalize"
+          >
             {description ? description : "**Missing Description**"}
           </Text>
         </Link>
       </CardHeader>
+
+      {/* Filetype Badge */}
       <CardBody pt="0">
         <Box mt="3">
           <Text fontSize="sm" fontWeight="medium">
@@ -50,6 +58,7 @@ export const GistCard: FC<Gist> = memo(
             ))}
         </Box>
 
+        {/* Fork Users */}
         <Box mt="2">
           <Text fontSize="sm" fontWeight="medium">
             Fork Users:

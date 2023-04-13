@@ -6,7 +6,7 @@ export const ToggleColorMode: FC = ({}) => {
   const { colorMode, toggleColorMode } = useColorMode();
 
   return (
-    <Button onClick={toggleColorMode} pos="absolute" right="4" top="2">
+    <Button onClick={toggleColorMode} pos="absolute" right="4">
       <Icon as={colorMode === "light" ? IconMoonFilled : IconBrightness2} fontSize="xl" />
     </Button>
   );

@@ -1,7 +1,8 @@
 import {
-  Button,
   Center,
   Container,
+  Divider,
+  Flex,
   FormControl,
   FormLabel,
   Heading,
@@ -11,13 +12,26 @@ import {
   InputRightElement,
   SimpleGrid,
   Spinner,
-  useToast,
+  Text,
+  useToast
 } from "@chakra-ui/react";
 import { IconAlertTriangleFilled, IconX } from "@tabler/icons-react";
 import { ChangeEvent, FC, useCallback, useEffect, useState } from "react";
 import { useAsync, useDebounce } from "react-use";
 import { fetchGists } from "./api";
 import { GistCard } from "./components/GistCard";
+
+const LoadingSpinner = () => (
+  <Center>
+    <Spinner />
+  </Center>
+);
+
+const ErrorIcon = () => (
+  <Center>
+    <Icon as={IconAlertTriangleFilled} fontSize="9xl" />
+  </Center>
+);
 
 
 export const App: FC = () => {
@@ -74,10 +88,12 @@ export const App: FC = () => {
   }, [error, toast]);
 
   return (
-    <Container maxW="container.xl" mx="auto" my="4">
-      <Heading textAlign="center">Gist Explorer</Heading>
-      <FormControl gap="10" mb="4">
-        <FormLabel htmlFor="username">Enter a GitHub username:</FormLabel>
+    <Container maxW="container.xl" mx="auto" my="10">
+      <Heading textAlign="center" mb="6">
+        Gist Explorer
+      </Heading>
+      <FormControl gap="10" mb="10">
+        <FormLabel htmlFor="username">Username for Public Gists</FormLabel>
         <InputGroup>
           <Input
             id="username"
@@ -89,39 +105,48 @@ export const App: FC = () => {
 
           <InputRightElement>
             {!isClear && (
-              <Icon as={IconX} onClick={handleClearClick} cursor="pointer" />
+              <Flex
+                align="center"
+                gap="1"
+                cursor="pointer"
+                onClick={handleClearClick}
+              >
+                <Icon as={IconX} />
+                Clear
+              </Flex>
             )}
           </InputRightElement>
         </InputGroup>
       </FormControl>
-      <Button
-        colorScheme="twitter"
-        disabled={!username || loading}
-        isLoading={loading}
-        loadingText="Loading"
-        mb="10"
-        type="submit"
-        onClick={handleClearClick}
-      >
-        {loading ? "Fetching Gists..." : "Fetch Gists"}
-      </Button>
 
-      {loading && (
-        <Center>
-          <Spinner />
-        </Center>
-      )}
-      {error && (
-        <Center>
-          <Icon as={IconAlertTriangleFilled} fontSize="9xl" />
-        </Center>
+      {loading && <LoadingSpinner />}
+
+      {error && <ErrorIcon />}
+
+      {!loading && !error && gists.length > 0 && (
+        <>
+          {username && (
+            <Heading textTransform="capitalize" mb="3">
+              {username} Public Gists
+            </Heading>
+          )}
+          <Divider mb="5" />
+          <SimpleGrid columns={[1, 2, 3]} spacing="5">
+            {gists.map((gist) => (
+              <GistCard key={gist.id} {...gist} />
+            ))}
+          </SimpleGrid>
+        </>
       )}
 
-      <SimpleGrid columns={[1, 2, 3]} spacing="5">
-        {gists.map((gist) => (
-          <GistCard key={gist.id} {...gist} />
-        ))}
-      </SimpleGrid>
+      {!loading && !error && gists.length === 0 && username && (
+        <Flex justify="center" align="center" minH="full">
+          <Text fontSize="lg">
+            No public Gists found for the username "{username}". Please try a
+            different username.
+          </Text>
+        </Flex>
+      )}
     </Container>
   );
 };
