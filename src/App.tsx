@@ -6,17 +6,14 @@ import {
   Card,
   CardBody,
   CardHeader,
-  Center,
   Container,
   Flex,
   FormControl,
   FormLabel,
-  HStack,
   Heading,
   Input,
   Link,
   SimpleGrid,
-  Spinner,
   Text,
   useToast,
 } from "@chakra-ui/react";
@@ -30,6 +27,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useDebounce } from "react-use";
 import "./App.css";
 
 interface Gist {
@@ -65,13 +63,13 @@ const api = axios.create({
 // Memoize functional components and avoid unnecessary re-renders. This is especially useful when dealing with large lists.
 const GistCard: FC<Gist> = memo(
   ({ id, description, html_url, fileTypes, forkedUsers }) => (
-    <Card mb="6" key={id} variant="outline" shadow='md'>
+    <Card mb="6" key={id} variant="outline" shadow="md">
       <CardHeader>
         <Link href={html_url} isExternal>
           <Heading size="md">{description || "Unnamed Gist"}</Heading>
         </Link>
       </CardHeader>
-      <CardBody pt='0'>
+      <CardBody pt="0">
         <Flex align="center" gap="2" mt="3" flexWrap="wrap">
           <Text fontWeight="medium" fontSize="sm">
             Filetype:
@@ -98,9 +96,20 @@ const GistCard: FC<Gist> = memo(
 );
 
 export const App: FC = () => {
-  const [username, setUsername] = useState("");
   const [gists, setGists] = useState<Gist[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [username, setUsername] = useState("");
+  const [debouncedUsername, setDebouncedUsername] = useState("");
+
+  // Added debounce hook to prevent user from spamming the API request too frequently
+  useDebounce(
+    () => {
+      setDebouncedUsername(username);
+    },
+    500,
+    [username]
+  );
 
   const toast = useToast();
 
@@ -119,11 +128,11 @@ export const App: FC = () => {
     const fetchGists = async () => {
       try {
         setIsLoading(true);
-        const { data } = await api.get(`/users/${username}/gists`);
+        const { data } = await api.get(`/users/${debouncedUsername}/gists`);
 
         const processedGists = await Promise.all(
           data.map(
-            async ({ description, files, forks_url, html_url, id}: Gist) => {
+            async ({ description, files, forks_url, html_url, id }: Gist) => {
               const { data: forksData } = await api.get(forks_url);
 
               if (!forksData) {
@@ -132,7 +141,7 @@ export const App: FC = () => {
 
               const forkedUsers = forksData
                 .slice(-3)
-                .map(({ owner: { avatar_url, html_url, login} }: Gist) => ({
+                .map(({ owner: { avatar_url, html_url, login } }: Gist) => ({
                   avatar_url,
                   html_url,
                   login,
@@ -160,24 +169,24 @@ export const App: FC = () => {
           duration: 5000,
           isClosable: true,
           status: "error",
-          title: "An error occurred while fetching gists.",
+          title: "The username you entered does not exist",
         });
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (username) {
+    if (debouncedUsername) {
       fetchGists();
     }
-  }, [username, toast]);
+  }, [debouncedUsername, toast]);
 
   const isEmpty = useMemo(() => gists.length === 0, [gists]);
 
   return (
     <Container maxW="container.xl" mx="auto" my="4">
       <Heading textAlign="center">Gist Explorer</Heading>
-      <FormControl gap="10" mb='4'>
+      <FormControl gap="10" mb="4">
         <FormLabel htmlFor="username">Enter a GitHub username:</FormLabel>
         <Input
           id="username"
@@ -185,28 +194,28 @@ export const App: FC = () => {
           type="text"
           value={username}
           variant="filled"
+
         />
       </FormControl>
       <Button
         colorScheme="twitter"
         disabled={!username || isLoading}
         isLoading={isLoading}
-        mb='10'
+        mb="10"
         type="submit"
       >
         {isLoading ? "Fetching Gists..." : "Fetch Gists"}
       </Button>
-      {isLoading && (
-        <Center>
-          <Spinner />
-        </Center>
-      )}
+
       {isEmpty && !isLoading && (
         <Text fontSize="xl" fontWeight="bold" my="10" textAlign="center">
           No Gists found
         </Text>
       )}
-      {!isEmpty && (
+
+      {!isEmpty && isLoading ? (
+        <div>Loading...</div>
+      ) : (
         <SimpleGrid columns={[1, 2, 3]} spacing="5">
           {gists.map((gist) => (
             <GistCard key={gist.id} {...gist} />
