@@ -6,28 +6,25 @@ import {
   Card,
   CardBody,
   CardHeader,
+  Center,
   Container,
   Flex,
   FormControl,
   FormLabel,
   Heading,
   Input,
+  InputGroup,
+  InputRightElement,
   Link,
   SimpleGrid,
+  Spinner,
   Text,
   useToast,
 } from "@chakra-ui/react";
 import axios from "axios";
-import {
-  ChangeEvent,
-  FC,
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import { useDebounce } from "react-use";
+import { ChangeEvent, FC, memo, useCallback, useEffect, useState } from "react";
+import { useAsync, useDebounce } from "react-use";
+
 import "./App.css";
 
 interface Gist {
@@ -60,13 +57,14 @@ const api = axios.create({
   },
 });
 
-// Memoize functional components and avoid unnecessary re-renders. This is especially useful when dealing with large lists.
 const GistCard: FC<Gist> = memo(
-  ({ id, description, html_url, fileTypes, forkedUsers }) => (
-    <Card mb="6" key={id} variant="outline" shadow="md">
+  ({ id, description = "Unnamed Gist", html_url, fileTypes, forkedUsers }) => (
+    <Card mb="6" variant="outline" shadow="md">
       <CardHeader>
         <Link href={html_url} isExternal>
-          <Heading size="md">{description || "Unnamed Gist"}</Heading>
+          <Heading size="md">
+            {description ? description : "**Missing Description**"}
+          </Heading>
         </Link>
       </CardHeader>
       <CardBody pt="0">
@@ -82,13 +80,15 @@ const GistCard: FC<Gist> = memo(
 
         <Box mt="2">
           <Text fontWeight="medium">Fork Users:</Text>
-          {forkedUsers.length > 0
-            ? forkedUsers.map(({ avatar_url, html_url, login }) => (
-                <Link href={html_url} key={login} isExternal>
-                  <Avatar size="sm" name={login} src={avatar_url} />
-                </Link>
-              ))
-            : "None"}
+          {forkedUsers.length > 0 ? (
+            forkedUsers.map(({ avatar_url, html_url, login }) => (
+              <Link href={html_url} key={login} isExternal>
+                <Avatar size="sm" name={login} src={avatar_url} />
+              </Link>
+            ))
+          ) : (
+            <Text>None</Text>
+          )}
         </Box>
       </CardBody>
     </Card>
@@ -96,13 +96,10 @@ const GistCard: FC<Gist> = memo(
 );
 
 export const App: FC = () => {
-  const [gists, setGists] = useState<Gist[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
   const [username, setUsername] = useState("");
   const [debouncedUsername, setDebouncedUsername] = useState("");
+  const [isClear, setIsClear] = useState(true);
 
-  // Added debounce hook to prevent user from spamming the API request too frequently
   useDebounce(
     () => {
       setDebouncedUsername(username);
@@ -115,113 +112,121 @@ export const App: FC = () => {
 
   const handleInputChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
-      setUsername(event.target.value);
+      const value = event.target.value;
+      setUsername(value);
+      setIsClear(value === "");
     },
     []
   );
 
-  /*
-   Instead of calling the fetchGists function on button click, we can use the useEffect hook to fetch the data when the
-    component mounts or when the username state changes. This will make the code more efficient and easier to read.
-  */
+  const handleClearClick = useCallback(() => {
+    setUsername("");
+    setIsClear(true);
+  }, []);
+
+  const {
+    loading,
+    error,
+    value: gists = [],
+  } = useAsync(async () => {
+    if (!debouncedUsername) return [];
+
+    const { data } = await api.get(`/users/${debouncedUsername}/gists`);
+
+    const processedGists = await Promise.all(
+      data.map(
+        async ({ description, files, forks_url, html_url, id }: Gist) => {
+          const { data: forksData } = await api.get(forks_url);
+
+          if (!forksData) {
+            throw new Error("Forks data not available");
+          }
+
+          const forkedUsers = forksData
+            .slice(-3)
+            .map(({ owner: { avatar_url, html_url, login } }: Gist) => ({
+              avatar_url,
+              html_url,
+              login,
+            }));
+
+          const fileTypes = Object.values(files).map(
+            (file) => file?.language ?? "Unknown"
+          );
+
+          return {
+            description,
+            fileTypes,
+            forkedUsers,
+            html_url,
+            id,
+          };
+        }
+      )
+    );
+
+    return processedGists;
+  }, [debouncedUsername]);
+
   useEffect(() => {
-    const fetchGists = async () => {
-      try {
-        setIsLoading(true);
-        const { data } = await api.get(`/users/${debouncedUsername}/gists`);
-
-        const processedGists = await Promise.all(
-          data.map(
-            async ({ description, files, forks_url, html_url, id }: Gist) => {
-              const { data: forksData } = await api.get(forks_url);
-
-              if (!forksData) {
-                throw new Error("Forks data not available");
-              }
-
-              const forkedUsers = forksData
-                .slice(-3)
-                .map(({ owner: { avatar_url, html_url, login } }: Gist) => ({
-                  avatar_url,
-                  html_url,
-                  login,
-                }));
-
-              const fileTypes = Object.keys(files).map(
-                (filename) => files[filename]?.language || "Unknown"
-              );
-
-              return {
-                description,
-                fileTypes,
-                forkedUsers,
-                html_url,
-                id,
-              };
-            }
-          )
-        );
-
-        setGists(processedGists);
-      } catch (error) {
-        console.error(error);
-        toast({
-          duration: 5000,
-          isClosable: true,
-          status: "error",
-          title: "The username you entered does not exist",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (debouncedUsername) {
-      fetchGists();
+    if (error) {
+      console.error(error);
+      toast({
+        duration: 5000,
+        isClosable: true,
+        status: "error",
+        title: "The username you entered does not exist",
+      });
     }
-  }, [debouncedUsername, toast]);
-
-  const isEmpty = useMemo(() => gists.length === 0, [gists]);
+  }, [error, toast]);
 
   return (
     <Container maxW="container.xl" mx="auto" my="4">
       <Heading textAlign="center">Gist Explorer</Heading>
       <FormControl gap="10" mb="4">
         <FormLabel htmlFor="username">Enter a GitHub username:</FormLabel>
-        <Input
-          id="username"
-          onChange={handleInputChange}
-          type="text"
-          value={username}
-          variant="filled"
+        <InputGroup>
+          <Input
+            id="username"
+            onChange={handleInputChange}
+            type="text"
+            value={username}
+            variant="filled"
+          />
 
-        />
+          <InputRightElement>
+            {!isClear && (
+              <Text onClick={handleClearClick} cursor="pointer">
+                x
+              </Text>
+            )}
+          </InputRightElement>
+        </InputGroup>
       </FormControl>
       <Button
         colorScheme="twitter"
-        disabled={!username || isLoading}
-        isLoading={isLoading}
+        disabled={!username || loading}
+        isLoading={loading}
+        loadingText="Loading"
         mb="10"
         type="submit"
+        onClick={handleClearClick}
       >
-        {isLoading ? "Fetching Gists..." : "Fetch Gists"}
+        {loading ? "Fetching Gists..." : "Fetch Gists"}
       </Button>
 
-      {isEmpty && !isLoading && (
-        <Text fontSize="xl" fontWeight="bold" my="10" textAlign="center">
-          No Gists found
-        </Text>
+      {loading && (
+        <Center>
+          <Spinner />
+        </Center>
       )}
+      {error && <div>Error: {error.message}</div>}
 
-      {!isEmpty && isLoading ? (
-        <div>Loading...</div>
-      ) : (
-        <SimpleGrid columns={[1, 2, 3]} spacing="5">
-          {gists.map((gist) => (
-            <GistCard key={gist.id} {...gist} />
-          ))}
-        </SimpleGrid>
-      )}
+      <SimpleGrid columns={[1, 2, 3]} spacing="5">
+        {gists.map((gist) => (
+          <GistCard key={gist.id} {...gist} />
+        ))}
+      </SimpleGrid>
     </Container>
   );
 };
