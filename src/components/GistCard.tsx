@@ -34,7 +34,7 @@ export const GistCard: FC<Gist> = memo(
     <Card mb="6" variant="outline" shadow="md">
       <CardHeader>
         <Link href={html_url} isExternal>
-          <Text fontSize="md" fontWeight="medium" noOfLines={2}>
+          <Text fontSize="md" fontWeight="medium" noOfLines={2} textTransform='capitalize'>
             {description ? description : "**Missing Description**"}
           </Text>
         </Link>
