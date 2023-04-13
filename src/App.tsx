@@ -2,7 +2,9 @@ import {
   Avatar,
   AvatarGroup,
   Badge,
+  Box,
   Button,
+  Card,
   Center,
   Container,
   Flex,
@@ -11,11 +13,8 @@ import {
   Heading,
   Input,
   Link,
-  ListItem,
   Spinner,
   Text,
-  Tooltip,
-  UnorderedList,
   useToast
 } from "@chakra-ui/react";
 import axios from "axios";
@@ -27,11 +26,18 @@ interface Gist {
   description?: string;
   html_url: string;
   files: Record<string, { language: string }>;
-  forks: Array<{
-    id: string;
-    owner: { login: string; avatar_url: string; html_url: string };
-  }>;
-  fileTypes: JSX.Element[];
+  fileTypes: string[];
+  forks_url: string;
+  owner: {
+    login?: string;
+    avatar_url?: string;
+    html_url?: string;
+  };
+  forkedUsers: {
+    avatar_url: string;
+    html_url: string;
+    login: string;
+  }[];
 }
 
 const api = axios.create({
@@ -45,6 +51,7 @@ export const App: FC = () => {
   const [username, setUsername] = useState("");
   const [gists, setGists] = useState<Gist[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
   const toast = useToast();
 
   const handleInputChange = useCallback(
@@ -59,19 +66,33 @@ export const App: FC = () => {
       setIsLoading(true);
       const { data } = await api.get(`/users/${username}/gists`);
 
-      console.log(data);
+      const processedGists = await Promise.all(
+        data.map(async ({ id, description, html_url, files, forks_url }) => {
+          const { data: forksData } = await api.get(forks_url);
 
-      const processedGists = data.map(
-        ({ id, description, html_url, files, forks }: Gist) => ({
-          id,
-          description,
-          html_url,
-          fileTypes: Object.keys(files)?.map((filename) => (
-            <Badge key={`${id}-${filename}`} size="xl">
-              {files[filename]?.language}
-            </Badge>
-          )),
-          forks,
+          if (!forksData) {
+            throw new Error("Forks data not available");
+          }
+
+          const forkedUsers = forksData
+            .slice(-3)
+            .map(({ owner: { login, avatar_url, html_url } }) => ({
+              avatar_url,
+              html_url,
+              login,
+            }));
+
+          const fileTypes = Object.keys(files).map(
+            (filename) => files[filename]?.language || "Unknown"
+          );
+
+          return {
+            id,
+            description,
+            html_url,
+            fileTypes,
+            forkedUsers,
+          };
         })
       );
 
@@ -119,43 +140,57 @@ export const App: FC = () => {
           <Spinner />
         </Center>
       )}
+
       {isEmpty && !isLoading && (
         <Text fontSize="xl" fontWeight="bold" my="10" textAlign="center">
           No Gists found
         </Text>
       )}
-      {!isEmpty && (
-        <UnorderedList>
-          {gists.map(({ id, description, html_url, fileTypes, forks }) => (
-            <ListItem key={id} gap="2" mb="6">
-              <Link
-                fontSize="lg"
-                fontWeight="bold"
-                href={html_url}
-                textTransform="capitalize"
-              >
-                {description || "Unnamed Gist"}
-              </Link>
 
-              <Flex align="center" gap="3">
+      {!isEmpty && (
+        <>
+          {gists.map(({ id, description, html_url, fileTypes, forkedUsers }) => (
+            <Card p="4" mb="6" key={id}>
+              <Box gap="2">
+                <Link
+                  fontSize="lg"
+                  fontWeight="bold"
+                  href={html_url}
+                  isExternal
+                  textTransform="capitalize"
+                >
+                  {description || "Unnamed Gist"}
+                </Link>
+
+                <Box mt="2">
+                  <Text fontWeight="medium" fontSize="sm">
+                    Fork Users:
+                  </Text>
+                  <AvatarGroup size="xs" spacing={0.5}>
+                    {forkedUsers.map(({ avatar_url, html_url, login }) => (
+                      <Link href={html_url} key={login} isExternal >
+                        <Avatar size="xs" name={login} src={avatar_url} />{" "}
+                      </Link>
+                    ))}
+                  </AvatarGroup>
+                </Box>
+              </Box>
+
+              <Flex align="center" gap="2" mt="3">
                 <Text fontWeight="medium" fontSize="sm">
                   Filetype:
                 </Text>
-                {fileTypes?.length ? fileTypes : null}
+                {fileTypes.length > 0 ? (
+                  fileTypes.map((type) => (
+                    <Badge key={`${id}-${type}`}>{type}</Badge>
+                  ))
+                ) : (
+                  <Text>Unknown</Text>
+                )}
               </Flex>
-
-              <AvatarGroup>
-                {forks
-                  ?.slice(0, 3)
-                  ?.map(({ id, owner: { login, avatar_url } }) => (
-                    <Tooltip key={id} title={login}>
-                      <Avatar src={avatar_url} />
-                    </Tooltip>
-                  ))}
-              </AvatarGroup>
-            </ListItem>
+            </Card>
           ))}
-        </UnorderedList>
+        </>
       )}
     </Container>
   );
